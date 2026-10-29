@@ -1,0 +1,5 @@
+.vscode
+build
+# nav_sys patch：package.xml 是本仓刻意提交的（由 package_ROS2.xml 复制，
+# 见 VENDOR.md），不再忽略
+__pycache__
