@@ -76,30 +76,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Create and push multi-arch manifest
+      - name: Create multi-arch manifest
         run: |
           SHA_SHORT=${GITHUB_SHA::7}
-          IMAGE="${REGISTRY}/${IMAGE_NAME}"
-          IMAGE_LC=$(echo "${IMAGE}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_LC=$(echo "${REGISTRY}/${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
           
-          # metadata-action 的 type=sha,prefix=<suffix>- 生成 <suffix>-<sha> 格式
-          # 如 prefix=amd64- + sha=abc1234 → tag 为 amd64-abc1234
+          # buildx 推的单架构镜像也是 manifest list 格式——
+          # docker manifest create 不接受 manifest list 作为源，
+          # 必须用 docker buildx imagetools create（原生支持合并）
           
-          # 短 SHA tag（多架构）
-          docker manifest create "${IMAGE_LC}:${SHA_SHORT}" \
+          # 短 SHA tag
+          docker buildx imagetools create \
+            -t "${IMAGE_LC}:${SHA_SHORT}" \
             "${IMAGE_LC}:amd64-${SHA_SHORT}" \
             "${IMAGE_LC}:arm64-${SHA_SHORT}"
-          docker manifest push "${IMAGE_LC}:${SHA_SHORT}"
           
-          # latest tag（多架构）
-          docker manifest create "${IMAGE_LC}:latest" \
+          # latest tag
+          docker buildx imagetools create \
+            -t "${IMAGE_LC}:latest" \
             "${IMAGE_LC}:amd64" \
             "${IMAGE_LC}:arm64"
-          docker manifest push "${IMAGE_LC}:latest"
           
-          echo "Multi-arch image: ${IMAGE_LC}:${SHA_SHORT}"
-          echo "Multi-arch latest: ${IMAGE_LC}:latest"
-          echo ""
-          echo "Usage in downstream Dockerfile:"
-          echo "  ARG ROS_IMAGE=ghcr.io/${IMAGE_NAME}:latest"
-          echo "  ARG ROS_IMAGE=ghcr.io/${IMAGE_NAME}:${SHA_SHORT}"
+          echo "Multi-arch: ${IMAGE_LC}:${SHA_SHORT}"
+          echo "Multi-arch: ${IMAGE_LC}:latest"
